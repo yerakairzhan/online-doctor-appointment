@@ -1,0 +1,88 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
+
+# Go build cache
+/bin/
+/pkg/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Database files
+*.sql~
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# ngrok files
+ngrok
+ngrok.exe
+*.ngrok.io
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# OS files
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Node modules (if you add frontend build tools)
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Test coverage
+coverage.txt
+coverage.html
+
+# PostgreSQL
+*.dump
+
+# Compiled Object files
+*.o
+*.a
+
+# Debug files
+debug
+__debug_bin
