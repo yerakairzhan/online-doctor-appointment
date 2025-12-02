@@ -50,6 +50,16 @@ CREATE TABLE appointments (
                               UNIQUE(doctor_id, appointment_date, appointment_time)
 );
 
+
+-- Create table for chat logs (optional)
+CREATE TABLE chat_logs (
+                           id SERIAL PRIMARY KEY,
+                           user_id INTEGER REFERENCES users(id),
+                           message TEXT,
+                           response TEXT,
+                           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_type ON users(user_type);

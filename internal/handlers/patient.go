@@ -62,6 +62,7 @@ func PatientDashboardHandler(w http.ResponseWriter, r *http.Request) {
                     <div class="action-buttons">
                         <a href="/dashboard/patient/book" class="btn btn-primary">Book New Appointment</a>
                         <a href="/dashboard/patient/appointments" class="btn btn-info">View All Appointments</a>
+						<a href="/dashboard/chatbot" class="btn btn-success">🤖 Ask AI Assistant</a>
                     </div>
                 </div>
 

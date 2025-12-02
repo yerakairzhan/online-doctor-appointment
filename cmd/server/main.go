@@ -66,6 +66,11 @@ func main() {
 	protected.HandleFunc("/admin/doctors", handlers.AdminDoctorsHandler).Methods("GET")
 	protected.HandleFunc("/admin/patients", handlers.AdminPatientsHandler).Methods("GET")
 
+	// Chatbot routes (can be accessed by all authenticated users)
+	protected.HandleFunc("/chatbot", handlers.ChatbotPageHandler).Methods("GET")
+	// Chatbot API endpoint
+	router.HandleFunc("/api/chatbot", handlers.ChatbotAPIHandler).Methods("POST")
+
 	// API routes for available time slots
 	router.HandleFunc("/api/available-slots/{doctorId}/{date}", handlers.GetAvailableSlotsHandler).Methods("GET")
 
