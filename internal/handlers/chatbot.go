@@ -22,23 +22,27 @@ type ChatResponse struct {
 	Timestamp string `json:"timestamp"`
 }
 
-// OpenAI API structures
-type OpenAIRequest struct {
-	Model       string          `json:"model"`
-	Messages    []OpenAIMessage `json:"messages"`
-	MaxTokens   int             `json:"max_tokens"`
-	Temperature float64         `json:"temperature"`
+// Gemini API structures
+type GeminiRequest struct {
+	Contents []GeminiContent `json:"contents"`
 }
 
-type OpenAIMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+type GeminiContent struct {
+	Parts []GeminiPart `json:"parts"`
 }
 
-type OpenAIResponse struct {
-	Choices []struct {
-		Message OpenAIMessage `json:"message"`
-	} `json:"choices"`
+type GeminiPart struct {
+	Text string `json:"text"`
+}
+
+type GeminiResponse struct {
+	Candidates []struct {
+		Content struct {
+			Parts []struct {
+				Text string `json:"text"`
+			} `json:"parts"`
+		} `json:"content"`
+	} `json:"candidates"`
 }
 
 // ChatbotPageHandler serves the chatbot page
@@ -474,8 +478,9 @@ func ChatbotAPIHandler(w http.ResponseWriter, r *http.Request) {
 	if useLocalAI {
 		response = getLocalAIResponse(chatReq.Message)
 	} else {
-		response, err = getOpenAIResponse(chatReq.Message)
+		response, err = getGeminiResponse(chatReq.Message)
 		if err != nil {
+			fmt.Println("Gemini API error:", err)
 			// Fallback to local responses if API fails
 			response = getLocalAIResponse(chatReq.Message)
 		}
@@ -492,16 +497,16 @@ func ChatbotAPIHandler(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, chatResp)
 }
 
-// getOpenAIResponse calls OpenAI API
-func getOpenAIResponse(userMessage string) (string, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
+// getGeminiResponse calls Google Gemini API
+func getGeminiResponse(userMessage string) (string, error) {
+	apiKey := os.Getenv("GEMINI_API_KEY")
 	if apiKey == "" {
-		return "", fmt.Errorf("OpenAI API key not configured")
+		return "", fmt.Errorf("Gemini API key not configured")
 	}
 
-	model := os.Getenv("OPENAI_MODEL")
+	model := os.Getenv("GEMINI_MODEL")
 	if model == "" {
-		model = "gpt-3.5-turbo"
+		model = "gemini-2.0-flash-exp"
 	}
 
 	systemPrompt := `You are a helpful medical assistant chatbot for an online doctor appointment system. 
@@ -513,14 +518,17 @@ Provide accurate, helpful medical information while being careful to:
 5. Keep responses concise (2-3 sentences)
 6. Include a reminder to book an appointment for personalized care when appropriate`
 
-	requestBody := OpenAIRequest{
-		Model: model,
-		Messages: []OpenAIMessage{
-			{Role: "system", Content: systemPrompt},
-			{Role: "user", Content: userMessage},
+	// Combine system prompt with user message for Gemini
+	fullMessage := systemPrompt + "\n\nUser question: " + userMessage
+
+	requestBody := GeminiRequest{
+		Contents: []GeminiContent{
+			{
+				Parts: []GeminiPart{
+					{Text: fullMessage},
+				},
+			},
 		},
-		MaxTokens:   500,
-		Temperature: 0.7,
 	}
 
 	jsonData, err := json.Marshal(requestBody)
@@ -528,13 +536,15 @@ Provide accurate, helpful medical information while being careful to:
 		return "", err
 	}
 
-	req, err := http.NewRequest("POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(jsonData))
+	// Construct the API URL with the model and API key
+	apiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, apiKey)
+
+	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+apiKey)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -548,17 +558,22 @@ Provide accurate, helpful medical information while being careful to:
 		return "", err
 	}
 
-	var openAIResp OpenAIResponse
-	err = json.Unmarshal(body, &openAIResp)
+	// Check for API errors
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("Gemini API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var geminiResp GeminiResponse
+	err = json.Unmarshal(body, &geminiResp)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	if len(openAIResp.Choices) == 0 {
-		return "", fmt.Errorf("no response from OpenAI")
+	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+		return "", fmt.Errorf("no response from Gemini")
 	}
 
-	return openAIResp.Choices[0].Message.Content, nil
+	return geminiResp.Candidates[0].Content.Parts[0].Text, nil
 }
 
 // getLocalAIResponse provides pre-programmed responses (fallback)
